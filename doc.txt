@@ -1,0 +1,55 @@
+const http = require('http');
+const fs = require('fs');
+
+const port = 3000;
+
+const server = http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/') {
+    // Read data from the file and display it on the screen
+    fs.readFile('data.txt', 'utf8', (err, data) => {
+      if (err) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Error reading file.');
+      } else {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.write('<html><head><title>Data Page</title></head><body>');
+        res.write('<h1>Stored Data:</h1>');
+        res.write('<pre>' + data + '</pre>');
+        res.write('<h2>Submit New Data:</h2>');
+        res.write('<form method="post" action="/submit">');
+        res.write('<input type="text" name="inputData" placeholder="Enter Data" required>');
+        res.write('<input type="submit" value="Submit">');
+        res.write('</form>');
+        res.write('</body></html>');
+        res.end();
+      }
+    });
+  } else if (req.method === 'POST' && req.url === '/submit') {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on('end', () => {
+      const inputData = body.split('=')[1];
+
+      // Append the submitted data to the file
+      fs.appendFile('data.txt', `${inputData}\n`, 'utf8', (err) => {
+        if (err) {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('Error writing to file.');
+        } else {
+          res.writeHead(302, { Location: '/' });
+          res.end();
+        }
+      });
+    });
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+});
+
+server.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
